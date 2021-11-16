@@ -7,6 +7,7 @@ import os, socket, time, datetime, re, arrow    # pip3 install --user arrow
 import paramiko
 from scp import SCPClient         # pip3 install --user scp
 import etcd3, oss2                # pip3 install --user etcd3 oss2 
+from itertools import islice
 import log_func
 
 
@@ -247,7 +248,7 @@ class OssOperator(object):
 
 
   def upload_file(self, snapshot, file_path):
-  # 上传文件至oss
+  # 上传文件
     # 如果文件不存在于OSS, 则上传文件
     if not self.ensure_file(snapshot):
 
@@ -261,6 +262,48 @@ class OssOperator(object):
     else:
       # 如果文件存在于oss上
       self.log.debug('{} has already existed on {}/{}'.format(file_path, self.bucket_name, oss_filename))
+  
+
+
+  def download_file(self, snapshot, file_path):
+  # 下载文件
+    if self.ensure_file(snapshot):
+
+      start_time = time.time()
+
+      # 下载文件
+      oss2.resumable_download(self.bucket, oss_filename, file_path)
+
+      self.log.debug('OSS file {}/{} --> {} download finished, cost {} Sec.'.format(self.bucket_name, oss_filename, file_path, time.time() - start_time))
+
+    else:
+      # 如果 oss 上不存在文件
+      self.log.debug('File {}/{} not found on oss.'.format(self.bucket_name, oss_filename))
+
+
+
+  def list_files(self, prefix):
+  # 列举文件 (需要输入具体前缀)
+    list = []
+    
+    for obj in islice(oss2.ObjectIteratorV2(self.bucket, prefix), 1000):
+      list.append(obj.key)
+
+    return list
+
+
+
+  def remove_file(self, snapshot):
+  # 删除文件
+    if self.ensure_file(snapshot):
+      # 删除 oss 对象
+      self.bucket.delete_object(oss_filename)
+
+      self.log.debug('OSS file {}/{} remove finished.'.format(self.bucket_name, oss_filename))
+
+    else:
+      # 如果 oss 上不存在文件
+      self.log.debug('File {}/{} not found on oss.'.format(self.bucket_name, oss_filename))
 
 
 
@@ -382,6 +425,33 @@ class TaskOperator(object):
 
 
 
+  def clear_task(self):
+    # 清理 oss 对象任务
+    now_hour = arrow.now().format("HH")
+    env = BasicOperator.get_running_env()
+    
+    if now_hour == '23':
+
+      pretime_prefix = arrow.now().shift(days=-180).format('YYYYMMDD')
+      self.log.debug('Clear oss file start...')
+      self.log.debug('--------------------------------')
+  
+      for item in OssOperator().list_files(os.path.join(env, f"snapshot-{pretime_prefix}")):
+        try:
+          self.log.debug(f'Removing {item} remove start.')
+
+          OssOperator().bucket.delete_object(item)
+
+          self.log.debug(f'OSS file {item} remove finished.')
+
+        except Exception as e:
+          self.log.error(f'Error: {e}.')
+          
+      self.log.debug('--------------------------------')
+      self.log.debug('Removing oss file complete.')
+
+
+
   def main_task(self):
     # 主任务
 
@@ -396,9 +466,13 @@ class TaskOperator(object):
 
     self.remove_task(snapshot)
 
-    
+    self.clear_task()
+
+
+
 
 if __name__ == '__main__':
 
   task = TaskOperator()
   task.main_task()
+
