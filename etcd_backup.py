@@ -174,7 +174,7 @@ Etcd 工具类
 class EtcdOperator(object):
 
   def __init__(self, *args, **kwargs):
-    self.host     = '192.168.3.151'
+    self.host     = BasicOperator().get_host_ip()
     self.port     = 2379
     self.ssl_path = os.path.join('ssl', BasicOperator().get_running_env())
     self.ca       = os.path.join(self.ssl_path, 'ca.pem')
@@ -428,7 +428,7 @@ class TaskOperator(object):
   def clear_task(self):
     # 清理 oss 对象任务
     now_hour = arrow.now().format("HH")
-    env = BasicOperator.get_running_env()
+    env = BasicOperator().get_running_env()
     
     if now_hour == '23':
 
@@ -475,4 +475,3 @@ if __name__ == '__main__':
 
   task = TaskOperator()
   task.main_task()
-
