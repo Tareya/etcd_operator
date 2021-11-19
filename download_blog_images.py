@@ -13,8 +13,8 @@ class OssOperator(object):
     self.endpoint = 'oss-cn-hangzhou-internal.aliyuncs.com'
     self.public_endpoint = 'oss-cn-hangzhou.aliyuncs.com'
     self.bucket_name = "uniondrug-devops"
-    self.ackID = 'LTAI1e3Uhc4Qa5Yv'
-    self.ackSc = 'nZWjdpIgElFdVfmN09vim11aqzAfx4'
+    self.ackID = 'xxxxxx'
+    self.ackSc = 'xxxxxx'
     self.auth = oss2.Auth(self.ackID, self.ackSc)
     self.bucket = oss2.Bucket(self.auth, self.public_endpoint, self.bucket_name)
     self.log = log_func.debug_log(logger_name='oss_operator', log_file=os.path.join(os.getcwd(), 'logs', 'blog.log'))
