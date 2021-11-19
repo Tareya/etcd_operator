@@ -53,7 +53,7 @@ class BasicOperator(object):
       elif self.host.find('172.16.0') != -1:
         running_env = 'release'
 
-      elif self.host.find('172.16.') != -1 and self.ip.find('172.16.0') == -1:
+      elif self.host.find('172.16.') != -1 and self.host.find('172.16.0') == -1:
         running_env = 'production'
 
       return running_env
